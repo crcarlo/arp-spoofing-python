@@ -388,12 +388,12 @@ print("INFO: Stop script by pressing the interrupt key combination CTRL+C")
 
 # main program loop
 while True :
-	vpoison = threading.Thread(target=v_poison)
+	vpoison = threading.Thread(target = v_poison)
 	vpoison.setDaemon(True)
 	vthread.append(vpoison)
 	vpoison.start()
 
-	gwpoison = threading.Thread(target=gw_poison)
+	gwpoison = threading.Thread(target = gw_poison)
 	gwpoison.setDaemon(True)
 	gwthread.append(gwpoison)
 	gwpoison.start()
