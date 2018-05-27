@@ -1,40 +1,4 @@
-# -*- coding: utf-8 -*-
-#
-# === ARP SPOOFING MAN IN THE MIDDLE (ASMITM) =======================================
-# OS: Linux based (tested on Debian8)
-# Python version: 2.7.6 (tested)
-# Requirements: scapy
-# Author: Carlo Cervellin
-# Version: 0.3
-#
-# Description:
-# This program lets your machine sniff the packets directed to your
-# network's gateway by making an ARP poisoning attack.
-#
-# === DISCLAIMER ====================================================================
-# This program is for demostration and educational purpose only.
-# The developer is not responsable for the use of this program.
-# Sniffing interet traffic is illegal in many coutries.
-#
-# === CHANGELOG =====================================================================
-# v0.3
-# - ADDED service field to both csv and screen print packet sniff information
-# - ADDED can now sniff all available services
-# - ADDED POST request sniff
-# - ADDED DOS attack
-# - CHANGED csv separator is now ';'
-# - tidying up code
-#
-# === REQUIREMENTS INFO =============================================================
-# For this script is required scapy.
-# Install scapy by typing the commands:
-#
-# wget scapy.net
-# unzip scapy-latest.zip  #might be "unzip index.html"
-# cd scapy-2.*
-# sudo python setup.py install
-#
-# ===================================================================================
+# -*- coding: utf-8 -*-s
 
 from scapy.all import *
 import threading
